@@ -1,0 +1,16 @@
+# config
+config/config.php
+
+# environment
+.env
+
+# uploads
+uploads/
+post_event_photos/
+
+# logs
+*.log
+
+# system files
+.DS_Store
+Thumbs.db

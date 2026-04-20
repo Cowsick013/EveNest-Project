@@ -1,0 +1,222 @@
+.admin-header {
+    margin-top: 0;   /* 🔥 IMPORTANT */
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px; /* spacing between rows */
+    padding: 20px;
+}
+
+/* Header */
+.admin-table th {
+    text-align: left;
+    font-size: 13px;
+    color: #6b7280;
+    text-transform: uppercase;
+    padding: 14px 16px;
+    letter-spacing: 0.05em;
+}
+
+/* Row container */
+.admin-table tr {
+    background: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    border-radius: 10px;
+}
+
+/* Cells */
+.admin-table td {
+    padding: 16px;
+    font-size: 14px;
+    margin: 10px;
+}
+
+/* Rounded row effect */
+.admin-table tr td:first-child {
+    border-radius: 10px 0 0 10px;
+}
+
+.admin-table tr td:last-child {
+    border-radius: 0 10px 10px 0;
+}
+
+/* Hover */
+.admin-table tr:hover {
+    transform: scale(1.01);
+    transition: 0.2s;
+}
+
+.admin-table td strong {
+    color: #111827;
+    font-size: 15px;
+}
+
+.action-btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.action-btn.suspend {
+    background: #ef5350;
+    color: white;
+}
+
+.action-btn.activate {
+    background: #2e7d32;
+    color: white;
+}
+
+.admin-table th:nth-child(1),
+.admin-table td:nth-child(1) {
+    width: 60px;
+}
+
+.admin-table th:nth-child(5),
+.admin-table td:nth-child(5) {
+    text-align: right;
+}
+
+.table-card {
+    padding: 25px;
+}
+
+.admin-container {
+    max-width: 1200px;
+    margin: auto;
+}
+/* ===============================
+   HEADER CLEAN
+================================ */
+
+.admin-header h1 {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+.admin-header p {
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* ===============================
+   TABLE REFINED
+================================ */
+
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 12px;
+}
+
+/* Header */
+.admin-table th {
+    text-align: left;
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    padding: 12px 14px;
+}
+
+/* Row */
+.admin-table tr {
+    background: white;
+    border-radius: 10px;
+    transition: 0.2s ease;
+}
+
+/* Cells */
+.admin-table td {
+    padding: 16px 14px;
+    font-size: 14px;
+}
+
+/* Rounded row */
+.admin-table tr td:first-child {
+    border-radius: 10px 0 0 10px;
+}
+
+.admin-table tr td:last-child {
+    border-radius: 0 10px 10px 0;
+}
+
+/* Hover effect (soft) */
+.admin-table tr:hover {
+    background: #f8fafc;
+}
+
+/* ===============================
+   EMAIL STYLE
+================================ */
+
+.user-email {
+    font-weight: 500;
+    color: #111827;
+}
+
+/* ===============================
+   ROLE TAG
+================================ */
+
+.role-tag {
+    background: #eef2ff;
+    color: #4338ca;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+/* ===============================
+   STATUS BADGES
+================================ */
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge.active {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge.suspended {
+    background: #fdecea;
+    color: #b71c1c;
+}
+
+/* ===============================
+   BUTTON CLEAN
+================================ */
+
+.action-btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    transition: 0.2s;
+}
+
+.action-btn.suspend {
+    background: #ef5350;
+    color: white;
+}
+
+.action-btn.activate {
+    background: #2e7d32;
+    color: white;
+}
+
+.action-btn:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
+} 

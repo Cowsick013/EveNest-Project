@@ -7,98 +7,80 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-/* -------------------------------
-   FIXED EVENT ID HANDLING
---------------------------------*/
 $event_id = $_GET["event_id"] ?? null;
-
 if (!$event_id) {
-    echo "Invalid event ID";
-    exit;
+    die("Invalid event ID");
 }
 
-$event_id = intval($event_id);
+$event_id = (int)$event_id;
 
-/* --------------------------------
-   FETCH EVENT DETAILS
----------------------------------*/
-$eventSql = "SELECT * FROM events WHERE id = ?";
-$stmt = $conn->prepare($eventSql);
+/* Fetch event */
+$stmt = $conn->prepare("SELECT title, event_date FROM events WHERE id = ?");
 $stmt->bind_param("i", $event_id);
 $stmt->execute();
 $event = $stmt->get_result()->fetch_assoc();
 
 if (!$event) {
-    die("Event not found.");
+    die("Event not found");
 }
+
+include "../includes/header.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Submit Post Event Summary</title>
-    <style>
-        .container {
-            width: 70%;
-            margin: auto;
-            padding: 20px;
-            background: #fafafa;
-            border: 1px solid #999;
-            border-radius: 10px;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-        }
-        .section-title {
-            font-size: 20px;
-            margin: 20px 0 10px;
-            font-weight: bold;
-        }
-        .btn {
-            padding: 10px 15px;
-            background: #0d47a1;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-        }
-    </style>
-</head>
-<body>
 
-<div class="container">
-    <h2>Submit Post Event Summary</h2>
+<div class="page-container">
+    <div class="card form-card">
 
-    <p><strong>Event:</strong> <?= $event["title"] ?></p>
-    <p><strong>Date:</strong> <?= $event["event_date"] ?></p>
+        <h2 class="page-title">Submit Post Event Summary</h2>
 
-    <!-- THE MOST IMPORTANT FIX: correct controller path -->
-    <form action="../controllers/PostEventController.php" method="POST" enctype="multipart/form-data">
+        <p class="form-meta">
+            <strong>Event:</strong> <?= htmlspecialchars($event['title']) ?><br>
+            <strong>Date:</strong> <?= date("d M Y", strtotime($event['event_date'])) ?>
+        </p>
 
-        <input type="hidden" name="event_id" value="<?= $event_id ?>">
+        <form action="../controllers/PostEventController.php"
+              method="POST"
+              enctype="multipart/form-data">
 
-        <div class="section-title">Event Summary</div>
-        <textarea name="summary" required placeholder="Write a brief summary of the event..."></textarea>
+            <input type="hidden" name="event_id" value="<?= $event_id ?>">
 
-        <div class="section-title">Dignitaries Name(s)</div>
-        <textarea name="dignitaries" placeholder="List all dignitaries..."></textarea>
+            <div class="form-group">
+                <label>Event Summary</label>
+                <textarea name="summary"
+                          required
+                          placeholder="Write a brief academic summary of the event..."></textarea>
+            </div>
 
-        <div class="section-title">Dignitaries' Words (2–3 lines)</div>
-        <textarea name="dignitaries_words" placeholder="What did they say?"></textarea>
+            <div class="form-group">
+                <label>Guest(s)</label>
+                <textarea name="dignitaries"
+                          placeholder="List all dignitaries involved in the event..."></textarea>
+            </div>
 
-        <div class="section-title">Upload Event Report (PDF)</div>
-        <input type="file" name="report_file" accept="application/pdf">
+            <div class="form-group">
+                <label>Words </label>
+                <textarea name="dignitaries_words"
+                          placeholder="Brief remarks or message delivered by dignitaries..."></textarea>
+            </div>
 
-        <div class="section-title">Upload Photos</div>
-        <input type="file" name="photos[]" multiple>
+            <div class="form-group">
+                <label>Upload Event Photographs</label>
+                <input type="file" name="photos[]" multiple>
+            </div>
 
-        <button type="submit" class="btn">Submit Summary</button>
-    </form>
+            <div class="form-actions">
+                <button type="submit" class="btn primary">
+                    Submit Summary
+                </button>
 
-    <br><br>
-    <a class="btn" href="summary_list.php">Back</a>
+                <a href="summary_list.php" class="btn back">
+                    Back
+                </a>
+            </div>
 
+        </form>
+
+    </div>
 </div>
+<a href="summary_list.php" class="btn back">Back</a>
 
-</body>
-</html>
+<?php include "../includes/footer.php"; ?>

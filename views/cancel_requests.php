@@ -2,76 +2,65 @@
 session_start();
 require_once "../db.php";
 require_once "../includes/flash.php";
+include "../includes/header.php";
 
-// Only admin can view
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo "Unauthorized access!";
-    exit;
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'principal'])) {
+    die("Unauthorized access");
 }
 
-require_once "../includes/flash.php"; // Load popup system
-
-// Fetch pending requests
 $query = $conn->query("
-    SELECT events.*, users.name AS requester_name 
-    FROM events
-    LEFT JOIN users ON events.created_by = users.id
-    WHERE cancel_request='requested'
+    SELECT e.id, e.title, e.event_date, u.name AS requester_name
+    FROM events e
+    LEFT JOIN users u ON e.created_by = u.id
+    WHERE e.cancel_request = 'requested'
+    ORDER BY e.event_date DESC
 ");
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Cancellation Requests</title>
-    <style>
-        table {
-            width: 80%;
-            margin: auto;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #777;
-        }
-        a.btn {
-            padding: 6px 12px;
-            text-decoration: none;
-            margin-right: 8px;
-            display: inline-block;
-        }
-        .approve { background: #4CAF50; color: white; }
-        .deny { background: #d9534f; color: white; }
-    </style>
-</head>
-<body>
 
-<h2 style="text-align:center;">Event Cancellation Requests</h2>
+<div class="page-container">
+    <h2 class="page-title">Event Cancellation Requests</h2>
+    <p class="page-subtitle">Approve or deny event cancellation requests</p>
 
-<table>
-    <tr>
-        <th>Event Title</th>
-        <th>Requested By</th>
-        <th>Date</th>
-        <th>Actions</th>
-    </tr>
+    <?php show_flash(); ?>
 
-    <?php while ($row = $query->fetch_assoc()): ?>
-    <tr>
-        <td><?= $row['title'] ?></td>
-        <td><?= $row['requester_name'] ?></td>
-        <td><?= $row['event_date'] ?></td>
-        <td>
-            <a class="btn approve" href="../controllers/approve_cancel.php?id=<?= $row['id'] ?>">
-                Approve
-            </a>
-            <a class="btn deny" href="../controllers/deny_cancel.php?id=<?= $row['id'] ?>">
-                Deny
-            </a>
-        </td>
-    </tr>
-    <?php endwhile; ?>
+    <div class="card">
 
+<?php if ($query->num_rows === 0): ?>
+    <p class="center text-muted">No pending cancellation requests.</p>
+<?php else: ?>
+
+<table class="event-table">
+    <thead>
+        <tr>
+            <th>Event</th>
+            <th>Date</th>
+            <th>Requested By</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+
+<?php while ($row = $query->fetch_assoc()): ?>
+<tr>
+    <td class="event-title"><?= htmlspecialchars($row['title']) ?></td>
+    <td><?= date("d M Y", strtotime($row['event_date'])) ?></td>
+    <td><?= htmlspecialchars($row['requester_name'] ?? 'Unknown') ?></td>
+    <td class="action-cell">
+        <a class="table-link" href="../controllers/approve_cancel.php?id=<?= $row['id'] ?>">Approve</a> |
+        <a class="table-link" href="../controllers/deny_cancel.php?id=<?= $row['id'] ?>">Deny</a>
+    </td>
+</tr>
+<?php endwhile; ?>
+
+    </tbody>
 </table>
 
-</body>
-</html>
+<?php endif; ?>
+
+    </div>
+</div>
+<a href="principal_dashboard.php" class="btn secondary">
+    ← Back to Dashboard
+</a>
+
+<?php include "../includes/footer.php"; ?>

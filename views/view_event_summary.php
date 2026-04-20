@@ -2,139 +2,167 @@
 session_start();
 require_once "../db.php";
 
-if (!isset($_GET['event_id'])) {
-    echo "Invalid event.";
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
     exit;
 }
 
-$event_id = intval($_GET['event_id']);
+if (!isset($_GET['event_id'])) {
+    die("Invalid event.");
+}
 
-// Get event
+$event_id = (int) $_GET['event_id'];
+
+// Fetch event
 $stmt = $conn->prepare("SELECT * FROM events WHERE id = ?");
 $stmt->bind_param("i", $event_id);
 $stmt->execute();
 $event = $stmt->get_result()->fetch_assoc();
 
-// Get summary
+if (!$event) {
+    die("Event not found.");
+}
+
+// Decode allowed audience (if any)
+$allowedAudience = null;
+if (!empty($event['allowed_audience'])) {
+    $allowedAudience = json_decode($event['allowed_audience'], true);
+}
+
+// Fetch report
 $stmt2 = $conn->prepare("SELECT * FROM post_event_reports WHERE event_id = ?");
 $stmt2->bind_param("i", $event_id);
 $stmt2->execute();
 $summary = $stmt2->get_result()->fetch_assoc();
 
 if (!$summary) {
-    echo "No summary found for this event.";
-    exit;
+    die("No summary found for this event.");
 }
 
-// Get photos
+// Fetch photos
 $stmt3 = $conn->prepare("SELECT * FROM post_event_photos WHERE report_id = ?");
 $stmt3->bind_param("i", $summary['id']);
 $stmt3->execute();
 $photosResult = $stmt3->get_result();
+
+include "../includes/header.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Event Summary</title>
 
-    <style>
-        body { font-family: Arial; padding: 20px; background: #f6f6f6; }
+<div class="page-container">
 
-        .summary-box {
-            background:white; padding:20px; border-radius:10px;
-            box-shadow:0 0 8px rgba(0,0,0,0.1);
-            width:85%; margin:auto;
-        }
+    <h2 class="page-title">Post Event Report</h2>
+    <p class="page-subtitle">
+        <?= htmlspecialchars($event['title']) ?> |
+        <?= date("d M Y", strtotime($event['event_date'])) ?> |
+        <?= htmlspecialchars($event['venue']) ?>
+    </p>
 
-        img.summary-thumb {
-            width:200px; margin:10px; cursor:pointer; border-radius:6px;
-            transition:0.2s;
-        }
-        img.summary-thumb:hover {
-            transform: scale(1.05);
-        }
-
-        /* Carousel Modal */
-        .carousel-modal {
-            display:none; position:fixed; top:0; left:0;
-            width:100%; height:100%; background:rgba(0,0,0,0.9);
-            z-index:2000; text-align:center;
-        }
-        .carousel-modal img {
-            max-width:90%; max-height:80vh; margin-top:60px; border-radius:12px;
-        }
-        .close-btn {
-            position:absolute; top:20px; right:30px; font-size:40px;
-            color:white; cursor:pointer;
-        }
-        .arrow {
-            position:absolute; top:50%; transform:translateY(-50%);
-            font-size:50px; color:white; cursor:pointer;
-        }
-        .arrow.left { left:20px; }
-        .arrow.right { right:20px; }
-
-        .download-btn {
-            position:absolute; bottom:40px; left:50%;
-            transform:translateX(-50%);
-            background:#0275d8; color:white;
-            padding:10px 20px;
-            border-radius:6px;
-            text-decoration:none;
-            font-size:18px;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="summary-box">
-    <h2><?= $event['title'] ?></h2>
-    <p><b>Date:</b> <?= $event['event_date'] ?></p>
-
-    <h3>Summary</h3>
-    <p><?= nl2br($summary['summary']) ?></p>
-
-    <h3>Dignitaries</h3>
-    <p><?= nl2br($summary['dignitaries']) ?></p>
-
-    <h3>Dignitaries Words</h3>
-    <p><?= nl2br($summary['dignitaries_words']) ?></p>
-
-    <h3>Report PDF</h3>
-    <?php if (!empty($summary['report_file'])): ?>
-        <a href="../<?= $summary['report_file'] ?>" target="_blank">Download PDF</a>
-    <?php else: ?>
-        <p>No report uploaded.</p>
+    <!-- ACTIONS (TOP) -->
+    <?php if (in_array($_SESSION['role'], ['admin','faculty'])): ?>
+        <div class="profile-actions" style="margin-bottom:20px;">
+            <a href="edit_event_summary.php?event_id=<?= $event_id ?>" class="button">
+                ✏️ Edit Summary
+            </a>
+        </div>
     <?php endif; ?>
 
-    <h3>Photos</h3>
+    <!-- AUDIENCE INFO -->
+    <div class="card">
+        <h3>Audience Information</h3>
+
+        <p>
+            <b>Planned Target Audience:</b><br>
+            <?= htmlspecialchars($event['audience']) ?>
+        </p>
+
+        <?php if ($allowedAudience): ?>
+            <p>
+                <b>Additional Audience Allowed:</b><br>
+
+                <?php if (!empty($allowedAudience['streams'])): ?>
+                    <?= implode(", ", $allowedAudience['streams']) ?><br>
+                <?php endif; ?>
+
+                <?php if (!empty($allowedAudience['years'])): ?>
+                    Years: <?= implode(", ", $allowedAudience['years']) ?><br>
+                <?php endif; ?>
+
+                Gender: <?= $allowedAudience['gender'] ?? 'All' ?>
+            </p>
+
+            <small class="text-muted">
+                Audience eligibility was expanded after event creation due to participation requirements.
+            </small>
+        <?php endif; ?>
+    </div>
+
+    <!-- REPORT CONTENT -->
+    <div class="card report-content">
+
+        <p class="text-muted">
+            <strong>Report Source:</strong>
+            <?= strtoupper($summary['report_source'] ?? 'MANUAL') ?>
+        </p>
+
+        <hr>
+
+        <h3>Event Summary</h3>
+        <p><?= nl2br(htmlspecialchars($summary['summary'])) ?></p>
+
+        <h3>Dignitaries</h3>
+        <p><?= nl2br(htmlspecialchars($summary['dignitaries'])) ?></p>
+
+        <h3>Dignitaries’ Remarks</h3>
+        <p><?= nl2br(htmlspecialchars($summary['dignitaries_words'])) ?></p>
+
+    </div>
+
+    <!-- EVENT PHOTOS -->
     <?php
     $photoArray = [];
-    while ($p = $photosResult->fetch_assoc()):
-        $photoArray[] = "../" . $p['photo_path'];
+    if ($photosResult->num_rows > 0):
     ?>
-        <img src="../<?= $p['photo_path'] ?>" 
-             class="summary-thumb" 
-             onclick="openCarousel(<?= count($photoArray)-1 ?>)">
-    <?php endwhile; ?>
+    <div class="card">
+        <h3>Event Photographs</h3>
 
-    <br><br>
-    <a href="summary_list.php">Back</a>
+        <div class="photo-grid">
+            <?php while ($p = $photosResult->fetch_assoc()):
+                $photoArray[] = "../" . $p['photo_path'];
+            ?>
+                <img src="../<?= $p['photo_path'] ?>"
+                     class="summary-thumb"
+                     onclick="openCarousel(<?= count($photoArray)-1 ?>)">
+            <?php endwhile; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- ACTIONS (BOTTOM) -->
+    <div class="profile-actions">
+        <a style="margin: 6px;" href="event_report_print.php?id=<?= $event_id ?>" class="button">
+            🖨️ Print Report
+        </a>
+        <a style="margin: 6px;" href="view_event.php?id=<?= $event_id ?>" class="button">
+            Back to Event
+        </a>
+        <a href="event_reports.php" class="button">
+            Back to Reports
+        </a>
+    </div>
+
 </div>
 
-<!-- CAROUSEL MODAL -->
+<!-- IMAGE CAROUSEL -->
 <div id="carouselModal" class="carousel-modal">
     <span class="close-btn" onclick="closeCarousel()">&times;</span>
     <span class="arrow left" onclick="changeSlide(-1)">&#10094;</span>
     <img id="carouselImage">
     <span class="arrow right" onclick="changeSlide(1)">&#10095;</span>
-
     <a id="downloadLink" class="download-btn" download>Download</a>
 </div>
 
 <script>
-let photos = <?php echo json_encode($photoArray); ?>;
+let photos = <?= json_encode($photoArray); ?>;
 let currentIndex = 0;
 
 function openCarousel(index) {
@@ -142,22 +170,17 @@ function openCarousel(index) {
     updateCarousel();
     document.getElementById("carouselModal").style.display = "block";
 }
-
 function closeCarousel() {
     document.getElementById("carouselModal").style.display = "none";
 }
-
 function changeSlide(step) {
     currentIndex = (currentIndex + step + photos.length) % photos.length;
     updateCarousel();
 }
-
 function updateCarousel() {
-    const img = photos[currentIndex];
-    document.getElementById("carouselImage").src = img;
-    document.getElementById("downloadLink").href = img;
+    document.getElementById("carouselImage").src = photos[currentIndex];
+    document.getElementById("downloadLink").href = photos[currentIndex];
 }
 </script>
 
-</body>
-</html>
+<?php include "../includes/footer.php"; ?>

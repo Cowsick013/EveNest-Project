@@ -2,82 +2,130 @@
 session_start();
 require_once "../db.php";
 
-// Only admin & faculty can save events
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'faculty'])) {
+if (!isset($_SESSION['role']) || !in_array(strtolower($_SESSION['role']), ['admin','faculty'])) {
     header("Location: ../views/login.php");
     exit();
 }
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    exit("Invalid request");
+}
 
-    // BASIC FIELDS
-    $title       = $_POST['event_title'];
-    $desc        = $_POST['description'];
-    $date        = $_POST['event_date'];
-    $time_from   = $_POST['time_from'];
-    $time_to     = $_POST['time_to'];
-    $venue       = $_POST['venue'];
-    $notes       = $_POST['notes'] ?? "";
-    $created_by  = $_SESSION['user_id'];
+/* =========================
+   BASIC EVENT DATA
+========================= */
+$title   = $_POST['event_title'];
+$desc    = $_POST['description'];
+$date    = $_POST['event_date'];
+$from    = $_POST['time_from'];
+$to      = $_POST['time_to'];
+$venue   = $_POST['venue'];
+$notes   = $_POST['notes'] ?? '';
+$created_by = $_SESSION['user_id'];
 
-    // NEW FIELDS
-    // Organizers (checkbox)
-    $organizers = isset($_POST['organizers']) 
-                  ? implode(", ", $_POST['organizers']) 
-                  : "";
+/* =========================
+   ORGANIZERS (REQUIRED)
+========================= */
+$organizers = $_POST['organizers'] ?? [];
+$organizer_other = trim($_POST['organizer_other'] ?? '');
+if ($organizer_other !== '') {
+    $organizers[] = $organizer_other;
+}
+$organized_by = implode(", ", $organizers);
 
-    // Target Audience (checkbox)
-    $audience = isset($_POST['audience'])
-                ? implode(", ", $_POST['audience'])
-                : "";
+/* =========================
+   EXTRA FIELDS
+========================= */
+$speaker        = $_POST['speaker'] ?? null;
+$incharge       = $_POST['incharge'];
+$jr_coordinator = $_POST['jr_coordinator'] ?? null;
+$audience       = implode(", ", $_POST['audience'] ?? []);
 
-    // Speaker / Guest
-    $speaker = $_POST['speaker'] ?? "";
+/* =========================
+   PARTICIPATION
+========================= */
+$is_participatable = isset($_POST['is_participatable']) ? 1 : 0;
 
-    // Event Incharge / Coordinator
-    $incharge = $_POST['incharge'] ?? "";
+/* =========================
+   LOCATION
+========================= */
+$lat    = $_POST['latitude'];
+$lng    = $_POST['longitude'];
+$radius = $_POST['radius'];
 
-    // Junior Coordinator (optional)
-    $jr_coordinator = $_POST['jr_coordinator'] ?? "";
+$conn->begin_transaction();
 
-    // Prepare SQL
+try {
+
+    /* =========================
+       INSERT EVENT
+    ========================= */
     $stmt = $conn->prepare("
-        INSERT INTO events 
-        (title, description, event_date, time_from, time_to, venue, organized_by, notes, created_by, 
-         speaker, incharge, jr_coordinator, audience, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+        INSERT INTO events
+        (
+            title, description, event_date, time_from, time_to,
+            venue, organized_by, notes, created_by,
+            speaker, incharge, jr_coordinator, audience,
+            is_participatable, status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
     ");
 
     if (!$stmt) {
-        die("SQL Error: " . $conn->error);
+        throw new Exception("EVENT SQL ERROR: " . $conn->error);
     }
 
-    // BIND PARAMETERS
-    // s = string, i = integer
+    // 14 placeholders → 14 types
     $stmt->bind_param(
-        "ssssssssissss",
+        "ssssssssissssi",
         $title,
         $desc,
         $date,
-        $time_from,
-        $time_to,
+        $from,
+        $to,
         $venue,
-        $organizers,
+        $organized_by,
         $notes,
-        $created_by,      // INT
+        $created_by,
         $speaker,
         $incharge,
         $jr_coordinator,
-        $audience
+        $audience,
+        $is_participatable
     );
 
-    // EXECUTE
-    if ($stmt->execute()) {
-        $event_id = $stmt->insert_id;
-        header("Location: ../views/event_created.php?id=" . $event_id);
-        exit();
-    } else {
-        echo "Error saving event: " . $stmt->error;
+    $stmt->execute();
+    $event_id = $stmt->insert_id;
+
+    /* =========================
+       INSERT EVENT LOCATION
+    ========================= */
+    $loc = $conn->prepare("
+        INSERT INTO event_locations
+        (event_id, latitude, longitude, radius_meters)
+        VALUES (?, ?, ?, ?)
+    ");
+
+    if (!$loc) {
+        throw new Exception("LOCATION SQL ERROR: " . $conn->error);
     }
+
+    $loc->bind_param(
+        "iddi",
+        $event_id,
+        $lat,
+        $lng,
+        $radius
+    );
+
+    $loc->execute();
+
+    $conn->commit();
+
+    header("Location: ../views/event_created.php?id=" . $event_id);
+    exit();
+
+} catch (Exception $e) {
+    $conn->rollback();
+    die($e->getMessage());
 }
-?>

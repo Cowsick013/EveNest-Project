@@ -1,0 +1,331 @@
+:root {
+  --primary: #6c4cf1;
+  --primary-dark: #5a3ee6;
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --muted: #6b7280;
+}
+
+/* ===============================
+   RESET + GLOBAL
+================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* ===============================
+   TYPOGRAPHY
+================================ */
+
+h1 {
+    font-size: 26px;
+    margin-bottom: 16px;
+}
+
+h2 {
+    font-size: 22px;
+    margin-bottom: 12px;
+}
+
+h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+p {
+    margin-bottom: 10px;
+    color: #444;
+}
+
+a {
+    color: #1976d2;
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ===============================
+   NAVBAR
+================================ */
+
+.evenest-nav {
+    background: var(--primary);
+    color: white;
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.evenest-logo {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.nav-left,
+.nav-right {
+    display: flex;
+    align-items: center;
+}
+
+.evenest-nav a {
+    margin-right: 24px;
+    font-size: 15px;
+    font-weight: 500;
+    color: white;
+}
+
+.nav-role {
+    background: rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+/* ===============================
+   PAGE LAYOUT
+================================ */
+
+.page-container {
+    padding: 30px;
+}
+
+/* ===============================
+   CARDS
+================================ */
+
+.card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    transition: 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.12);
+}
+
+/* ===============================
+   DASHBOARD
+================================ */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.dash-card {
+    text-decoration: none;
+    color: var(--text);
+}
+
+.dash-card h3 {
+    margin-bottom: 10px;
+}
+
+.dash-card p {
+    font-size: 14px;
+    color: var(--muted);
+}
+
+/* ===============================
+   EVENT DETAILS (FIXED)
+================================ */
+
+.event-details {
+    max-width: 900px;
+    margin: auto;
+}
+
+.event-section {
+    background: white;
+    padding: 18px 20px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+}
+
+.event-section p {
+    font-size: 15px;
+    color: var(--text);
+}
+
+/* ===============================
+   TABLES (EVENT LIST)
+================================ */
+
+.event-list-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.06);
+}
+
+.event-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.event-table th {
+    padding: 12px;
+    font-size: 13px;
+    color: #666;
+    text-transform: uppercase;
+}
+
+.event-table td {
+    padding: 14px;
+    background: #fafafa;
+    text-align: center;
+}
+
+.event-title {
+    text-align: left;
+    font-weight: 600;
+    color: #0d47a1;
+}
+
+/* ===============================
+   STATUS BADGES
+================================ */
+
+.status-pill {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-pill.active {
+    background: #e3f2fd;
+    color: #0d47a1;
+}
+
+.status-pill.ended {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+/* ===============================
+   FORMS (FIXED)
+================================ */
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    outline: none;
+}
+
+input:focus, textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 5px rgba(90,103,216,0.3);
+}
+
+/* REMOVE SPINNER */
+input[type="number"],
+input[type="time"],
+input[type="date"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}
+
+/* ===============================
+   BUTTONS
+================================ */
+
+.btn {
+    padding: 8px 18px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.btn.primary {
+    background: #1f2933;
+    color: white;
+}
+
+.btn.primary:hover {
+    background: #111827;
+    transform: translateY(-1px);
+}
+
+.btn.secondary {
+    background: white;
+    border: 1px solid #ccc;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+/* ===============================
+   ANIMATION
+================================ */
+
+.main {
+    animation: fadeIn 0.4s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.admin-container {
+    max-width: 1100px;
+    margin: auto;
+}
+.admin-table tr {
+    transition: 0.2s;
+}
+
+/* ===============================
+   FOOTER
+================================ */
+
+.footer {
+    text-align: center;
+    padding: 12px;
+    background: #e0e0e0;
+    margin-top: 40px;
+}

@@ -3,14 +3,12 @@ session_start();
 require_once "../db.php";
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit;
 }
 
-require_once "../includes/flash.php";
-
 $user_role = $_SESSION['role'];
-$user_id = $_SESSION['user_id'];
+$user_id   = $_SESSION['user_id'];
 
 // Fetch events
 if ($user_role === "admin") {
@@ -20,107 +18,85 @@ if ($user_role === "admin") {
     $stmt->execute();
     $query = $stmt->get_result();
 } else {
-    // Students only see active events
     $query = $conn->query("SELECT * FROM events WHERE status='active' ORDER BY event_date DESC");
 }
+
+include "../includes/header.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Event List</title>
-    <style>
-        table {
-            width: 90%;
-            margin: auto;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 12px;
-            border: 1px solid #777;
-            text-align: center;
-        }
-        tr.cancelled {
-            background: #ffcdd2;
-        }
-        tr.pending {
-            background: #ffe0b2;
-        }
-        .badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            color: white;
-            font-size: 14px;
-        }
-        .active-badge { background: #4caf50; }
-        .pending-badge { background: #ff9800; }
-        .cancelled-badge { background: #f44336; }
-    </style>
+<div class="page-container">
+    <h2 class="page-title">Event List</h2>
+    <p class="page-subtitle">Institutional event records</p>
 
-    <style>
-    tr.ended {
-        background: #e0e0e0;
-    }
-    .ended-badge {
-        background: #616161;
-    }
-    </style>
-
-</head>
-<body>
-
-<h2 style="text-align:center;">Event List</h2>
-
-<table>
+    <div class="event-list-card">
+        <!-- your existing table stays -->
+         <table class="event-table">
+    <thead>
     <tr>
-        <th>Title</th>
-        <th>Date</th>
-        <th>Status</th>
-        <th>Actions</th>
+        <th style="width:45%">Event</th>
+        <th style="width:20%">Date</th>
+        <th style="width:20%">Status</th>
+        <th style="width:15%; text-align:center;">Action</th>
     </tr>
+</thead>
 
-    <?php while ($event = $query->fetch_assoc()): ?>
+    <tbody>
+
+<?php while ($event = $query->fetch_assoc()): ?>
 
 <?php
-    // Default row class & label
     $row_class = "";
     $status_label = "";
 
-    // Determine if event has ended
-    // Determine if event has ended using DateTime
     $eventEnd = new DateTime($event['event_date'] . ' ' . $event['time_to']);
     $now = new DateTime();
     $event_has_ended = ($now > $eventEnd);
 
-if ($event['status'] === "cancelled") {
-    $row_class = "cancelled";
-    $status_label = "<span class='badge cancelled-badge'>Cancelled</span>";
+    if ($event['status'] === "cancelled") {
+        $row_class = "row-cancelled";
+        $status_label = "<span class='status-pill cancelled'>Cancelled</span>";
 
-} elseif ($event['cancel_request'] === "requested") {
-    $row_class = "pending";
-    $status_label = "<span class='badge pending-badge'>Cancellation Pending</span>";
+    } elseif ($event['cancel_request'] === "requested") {
+        $row_class = "row-pending";
+        $status_label = "<span class='status-pill pending'>Cancellation Pending</span>";
 
-} elseif ($event_has_ended) {
-    $row_class = "ended";
-    $status_label = "<span class='badge ended-badge'>Ended</span>";
+    } elseif ($event_has_ended) {
+        $row_class = "row-ended";
+        $status_label = "<span class='status-pill ended'>Completed</span>";
 
-} else {
-    $status_label = "<span class='badge active-badge'>Active</span>";
-}
-
+    } else {
+        $status_label = "<span class='status-pill active'>Active</span>";
+    }
 ?>
 
+<tr class="<?= $row_class ?>"
+    onclick="window.location.href='view_event.php?id=<?= $event['id'] ?>'">
 
-    <tr class="<?= $row_class ?>">
-        <td><?= $event['title']; ?></td>
-        <td><?= $event['event_date']; ?></td>
-        <td><?= $status_label ?></td>
-        <td>
-            <a href="view_event.php?id=<?= $event['id']; ?>">View</a>
-        </td>
-    </tr>
+<td class="event-title"><?= htmlspecialchars($event['title']) ?></td>
 
-    <?php endwhile; ?>
+<td class="event-date-cell">
+    <?= date("d M Y", strtotime($event['event_date'])) ?>
+</td>
+
+<td class="status-cell">
+    <?= $status_label ?>
+</td>
+
+<td class="action-cell">
+    <a href="view_event.php?id=<?= $event['id'] ?>" class="table-link">
+        View →
+    </a>
+</td>
+
+</tr>
+
+
+<?php endwhile; ?>
+
+    </tbody>
 </table>
 
-</body>
-</html>
+</div>
+    </div>
+</div>
+
+<?php include "../includes/footer.php"; ?>

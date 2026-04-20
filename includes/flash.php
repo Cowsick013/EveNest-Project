@@ -1,5 +1,4 @@
 <?php
-// Start session if not started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -23,9 +22,7 @@ function show_flash()
                 background: #f4f4f4;'>
                 <b>$msg</b>
             </div>";
-
         }
         unset($_SESSION['flash']);
     }
 }
-?>

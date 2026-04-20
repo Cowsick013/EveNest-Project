@@ -3,7 +3,7 @@ session_start();
 require_once "../db.php";
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit;
 }
 
@@ -12,11 +12,9 @@ if (!isset($_GET['id'])) {
     exit;
 }
 
-$event_id = $_GET['id'];
+$event_id  = (int) $_GET['id'];
 $user_role = $_SESSION['role'];
 $user_id   = $_SESSION['user_id'];
-
-require_once "../includes/flash.php";
 
 // Fetch event data
 $stmt = $conn->prepare("
@@ -27,173 +25,278 @@ $stmt = $conn->prepare("
 ");
 $stmt->bind_param("i", $event_id);
 $stmt->execute();
-$result = $stmt->get_result();
-$event = $result->fetch_assoc();
+$event = $stmt->get_result()->fetch_assoc();
 
 if (!$event) {
     echo "Event not found";
     exit;
 }
 
-// Current date & time
+$allowedAudience = null;
+
+if (!empty($event['allowed_audience'])) {
+    $allowedAudience = json_decode($event['allowed_audience'], true);
+}
+
+// Date logic
 $today = date("Y-m-d");
 $current_time = date("H:i");
 
-// EVENT HAS ENDED IF:
-// 1) Today's date is after event date
-// OR
-// 2) Same date but current time is past time_to
 $event_has_ended = (
     $today > $event['event_date'] ||
     ($today == $event['event_date'] && $current_time > $event['time_to'])
 );
 
+include "../includes/header.php";
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>View Event</title>
-    <style>
-        .box {
-            width: 60%;
-            margin: auto;
-            padding: 20px;
-            border: 1px solid #888;
-            background: #fafafa;
-            border-radius: 10px;
-        }
-        .actions a {
-            padding: 8px 12px;
-            margin-right: 10px;
-            background: #ddd;
-            display: inline-block;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .cancel-box {
-            padding: 10px;
-            margin: 15px 0;
-            background: #ffcc80;
-            border-left: 6px solid #ff9800;
-        }
-        .cancelled {
-            padding: 10px;
-            background: #ef5350;
-            border-left: 6px solid #c62828;
-            color: white;
-            margin: 15px 0;
-        }
-        .post-event-btn {
-            display:inline-block;
-            margin-top:10px;
-            padding:10px 15px;
-            background:#0d47a1;
-            color:white;
-            border-radius:5px;
-            text-decoration:none;
-        }
-    </style>
-</head>
-<body>
+<style>
 
-<div class="box">
-    <h2><?php echo $event['title']; ?></h2>
+.event-page {
+    max-width: 1000px;
+    margin: 30px auto;
+    padding: 10px;
+}
 
-    <?php if ($event['status'] === "cancelled"): ?>
-        <div class="cancelled">
-            <b>This event has been cancelled.</b>
+/* HEADER */
+.event-header h2 {
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+
+.event-date {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* STATUS BANNERS */
+.status-banner {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.status-banner.ended {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-banner.cancelled {
+    background: #fdecea;
+    color: #b71c1c;
+}
+
+.status-banner.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* MAIN CARD */
+.event-card {
+    background: white;
+    padding: 24px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    margin-top: 20px;
+}
+
+/* GRID */
+.event-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+/* EACH FIELD */
+.event-info-grid div {
+    background: #f9fafb;
+    padding: 12px 14px;
+    border-radius: 10px;
+}
+
+.event-info-grid b {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+/* DESCRIPTION */
+.event-card p {
+    margin-bottom: 14px;
+    line-height: 1.6;
+}
+
+/* ACTION BAR */
+.action-bar {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* BUTTON COLORS */
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.btn.primary {
+    background: #1f2937;
+    color: white;
+}
+
+.btn.secondary {
+    background: white;
+    border: 1px solid #ccc;
+    color: #333;
+}
+
+.btn.danger {
+    background: #ef5350;
+    color: white;
+}
+
+/* BUTTON INTERACTION */
+.btn:hover {
+    transform: translateY(-2px);
+    transition: 0.2s ease;
+}
+
+/* SMALL TEXT */
+small {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+</style>
+<div class="event-page">
+
+    <!-- HEADER -->
+    <div class="event-header">
+        <h2><?= htmlspecialchars($event['title']) ?></h2>
+        <span class="event-date">
+            <?= $event['event_date'] ?> • <?= $event['time_from'] ?> – <?= $event['time_to'] ?>
+        </span>
+    </div>
+
+    <!-- STATUS BANNERS -->
+    <?php if ($event['status'] === 'cancelled'): ?>
+        <div class="status-banner cancelled">
+            This event has been cancelled.
+        </div>
+    <?php elseif ($event_has_ended): ?>
+        <div class="status-banner ended">
+            This event has been completed.
         </div>
     <?php endif; ?>
 
     <?php if ($event['cancel_request'] === "requested" && $event['status'] === "active"): ?>
-        <div class="cancel-box">
-            <b>Cancellation Request Pending</b><br>
-            Requested by: <b><?php echo $event['creator_name']; ?></b>
+        <div class="status-banner pending">
+            Cancellation request pending (requested by <?= htmlspecialchars($event['creator_name']) ?>)
         </div>
     <?php endif; ?>
 
-    <p><b>Date:</b> <?= $event['event_date']; ?></p>
-    <p><b>Time:</b> <?= $event['time_from'] . " - " . $event['time_to']; ?></p>
-    <p><b>Venue:</b> <?= $event['venue']; ?></p>
-    <p><b>Description:</b> <?= $event['description']; ?></p>
-    <p><b>Organized By:</b> <?= $event['organized_by']; ?></p>
-    <p><b>Status:</b> <?= $event['status']; ?></p>
-    <p><b>Notes:</b> <?= $event['notes']; ?></p>
+    <!-- EVENT DETAILS -->
+    <div class="event-card">
 
-    <hr>
+        <div class="event-info-grid">
+            <div><b>Venue</b><br><?= htmlspecialchars($event['venue']) ?></div>
+            <div><b>Organized By</b><br><?= htmlspecialchars($event['organized_by']) ?></div>
+            <div><b>Speaker</b><br><?= htmlspecialchars($event['speaker']) ?></div>
+            <div><b>Event In-Charge</b><br><?= htmlspecialchars($event['incharge']) ?></div>
+            <div><b>Coordinator</b><br><?= htmlspecialchars($event['jr_coordinator']) ?></div>
+            <div>
+    <b>Target Audience</b><br>
+    <?= htmlspecialchars($event['audience']) ?>
 
-    <div class="actions">
+    <?php if ($allowedAudience): ?>
+        <br><br>
+        <b>Allowed Audience (Updated)</b><br>
 
-        <!-- EDIT (admin + faculty) -->
-        <?php if (in_array($user_role, ["admin", "faculty"])): ?>
-            <a href="edit_event.php?id=<?php echo $event_id; ?>">Edit</a>
+        <?php if (!empty($allowedAudience['streams'])): ?>
+            <?= implode(", ", $allowedAudience['streams']) ?><br>
         <?php endif; ?>
 
-        <!-- DELETE BUTTON (only if cancel_request = approved) -->
-         <?php if ($event['cancel_request'] === "approved" && in_array($user_role, ["admin", "faculty"])): ?>
-            <a href="../controllers/delete_event.php?id=<?= $event_id ?>"
-            onclick="return confirm('Are you sure you want to delete this event?')">
-            Delete Event
-        </a>
+        <?php if (!empty($allowedAudience['years'])): ?>
+            Years: <?= implode(", ", $allowedAudience['years']) ?><br>
         <?php endif; ?>
 
+        Gender: <?= $allowedAudience['gender'] ?? 'All' ?>
 
-        <p><b>Speaker:</b> <?= $event['speaker']; ?></p>
-        <p><b>Event Incharge:</b> <?= $event['incharge']; ?></p>
-        <p><b>Jr. Coordinator:</b> <?= $event['jr_coordinator']; ?></p>
-        <p><b>Target Audience:</b> <?= $event['audience']; ?></p>
+        <br>
+        <small style="color:#64748b;">
+            Audience eligibility expanded after event creation
+        </small>
+    <?php endif; ?>
+</div>
 
-        <!-- REQUEST CANCEL (admin + faculty) -->
+        </div>
+
+        <hr>
+
+        <p><b>Description</b></p>
+        <p><?= nl2br(htmlspecialchars($event['description'])) ?></p>
+
+        <?php if (!empty($event['notes'])): ?>
+            <p><b>Notes</b></p>
+            <p><?= nl2br(htmlspecialchars($event['notes'])) ?></p>
+        <?php endif; ?>
+
+    </div>
+
+    
+    <!-- ACTION BAR -->
+    <div class="action-bar">
+
+        <?php if (in_array($user_role, ['admin','faculty'])): ?>
+            <a href="edit_event.php?id=<?= $event_id ?>" class="btn secondary">Edit Event</a>
+        <?php endif; ?>
+<!-- ACTION BAR 
+        <?php if ($event_has_ended && in_array($user_role, ['admin','faculty'])): ?>
+            <a href="view_event_summary.php?id=<?= $event_id ?>" class="btn primary">
+                Post-Event Summary
+            </a>
+        <?php endif; ?>
+-->
         <?php if (
-    $user_role === "faculty" &&
-    $event['status'] === "active" && //THIS LOGIC HELPS TO KEEP THE CANCELLATION EVEN AFTER ADMIN DENIES IT
-    in_array($event['cancel_request'],  ["none", "denied"])
-): ?>
-    <a href="../controllers/request_cancel.php?id=<?= $event_id; ?>">
-        Request Cancellation
-    </a>
-<?php endif; ?>
-
-        <!-- REQUEST GOT DENIED BY ADMIN-->
-         <?php if ($event['cancel_request'] === "denied"): ?>
-    <div class="cancel-box" style="background:#ffcdd2; border-left: 6px solid #d32f2f;">
-        <b>Previous cancellation request was denied.</b>
-        <br>You may request again.
-    </div>
-<?php endif; ?>
+            $user_role === 'faculty' &&
+            $event['status'] === 'active' &&
+            in_array($event['cancel_request'], ['none','denied'])
+        ): ?>
+            <a href="../controllers/request_cancel.php?id=<?= $event_id ?>" class="btn danger">
+                Request Cancellation
+            </a>
+        <?php endif; ?>
 
     </div>
 
-    <!-- POST-EVENT SUMMARY BUTTON (ONLY show if event ended) -->
-    <?php if ($event_has_ended && in_array($user_role, ['admin', 'faculty'])): ?>
-        <div style='margin-top:15px; padding:10px; background:#e3f2fd; border-left:5px solid #1976d2;'>
-            <b>This event has ended.</b><br>
-            You may now submit the Post-Event Summary.
-        </div>
-
-        <a href="submit_post_event.php?id=<?php echo $event_id; ?>" class="post-event-btn">
-            Submit Post-Event Summary
+    <!-- STUDENT ACTION -->
+    <?php if ($user_role === 'student' && !$event_has_ended): ?>
+        <a href="mark_attendance.php?event_id=<?= $event_id ?>" class="btn primary">
+            Mark Attendance
         </a>
     <?php endif; ?>
 
-    <?php if (isset($_GET['msg'])): ?>
-    <div style="padding:10px; background:#d1ecf1; color:#0c5460; border:1px solid #bee5eb; margin-bottom:15px;">
-        <?php 
-            if ($_GET['msg'] === "request_sent") echo "Cancellation request submitted.";
-            if ($_GET['msg'] === "already_requested") echo "Cancellation request is already pending.";
-            if ($_GET['msg'] === "denied") echo "Your cancellation request was denied by admin.";
-        ?>
-    </div>
-<?php endif; ?>
+    <!-- FACULTY CONTROLS -->
+    <?php if ($user_role === 'faculty' && $event['status'] === 'active'): ?>
+        <hr>
+        <h3>Faculty Controls</h3>
 
-<?php if ($_SESSION['role'] === 'student'): ?>
-    <a href="mark_attendance.php?event_id=<?= $event_id ?>">
-        Test Attendance Page
-    </a>
-<?php endif; ?>
+        <a href="registered_students.php?event_id=<?= $event_id ?>" class="btn secondary">
+            View Registered Students
+        </a>
 
+        <a href="attendance_qr.php?event_id=<?= $event_id ?>" class="btn secondary">
+            Open Attendance QR
+        </a>
+    <?php endif; ?>
+    <a href="event_list.php" class="btn secondary">← Back to Events</a>
 
 </div>
 
-</body>
-</html>
+<?php include "../includes/footer.php"; ?>
